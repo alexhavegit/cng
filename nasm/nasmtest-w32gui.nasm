@@ -11,9 +11,13 @@ IMAGE_ICON          EQU 1
 LR_SHARED           EQU 8000h
 NULL                EQU 0
 SW_SHOWNORMAL       EQU 1
-WM_DESTROY          EQU 2
 WS_EX_COMPOSITED    EQU 2000000h
 WS_OVERLAPPEDWINDOW EQU 0CF0000h
+
+
+WM_DESTROY          EQU 2
+WM_PAINT            equ 0x000F
+
 
 WindowWidth         EQU 640
 WindowHeight        EQU 480
@@ -32,12 +36,23 @@ extern _ShowWindow@8
 extern _TranslateMessage@4
 extern _UpdateWindow@4
 
+extern _BeginPaint@8
+extern _EndPaint@8
+extern _TextOutA@20
+
+
+
 global Start                                    ; Export symbols. The entry point
 global WinMain
 
 section .data                                   ; Initialized data segment
  WindowName db "Basic Window 32  win32gui", 0
  ClassName  db "Window", 0
+
+ WindowText db "dick", 0
+
+ PaintSt db "ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss", 0
+
 
 section .bss                                    ; Uninitialized data segment
  hInstance resd 1
@@ -194,6 +209,9 @@ WndProc:
  cmp   dword [uMsg], WM_DESTROY                 ; [EBP + 12]
  je    WMDESTROY
 
+  cmp   dword [uMsg], WM_PAINT                 ; [EBP + 12]
+ je    C_WM_PAINT
+
 DefaultMessage:
  push  dword [lParam]                           ; [EBP + 20]
  push  dword [wParam]                           ; [EBP + 16]
@@ -204,6 +222,60 @@ DefaultMessage:
  mov   ESP, EBP                                 ; Remove the stack frame
  pop   EBP
  ret   16                                       ; Pop 4 parameters off the stack and return
+
+ 
+ C_WM_PAINT:
+
+ ;typedef struct tagPAINTSTRUCT {
+ ;   HDC         hdc;
+ ;   BOOL        fErase;
+ ;   RECT        rcPaint;
+ ;   BOOL        fRestore;
+ ;   BOOL        fIncUpdate;
+ ;   BYTE        rgbReserved[32];
+
+
+%define ps                 EBP - 80             ; WNDCLASSEX structure. 48 bytes
+%define ps.hdc             EBP - 80
+%define ps.fErase          EBP - 76
+%define ps.rcPaint         EBP - 72
+%define ps.fRestore        EBP - 68
+%define ps.fIncUpdate      EBP - 64
+%define ps.rgbReserved     EBP - 32
+
+%define hDC               EBP - 28
+
+
+;BeginPaint(hWnd, &ps);
+ lea   EAX, [PaintSt]                                ; [EBP - 80]
+ push  EAX 
+ push  dword [hWnd]                             ; [EBP + 8]
+ call  _BeginPaint@8
+ mov   dword [hDC], EAX
+
+
+;TextOut(hDC, x, y, wcSym, 1);
+;mov eax, 4
+
+push  4
+push  WindowText
+
+;mov eax, 10
+push  100
+push  100
+push  dword [hDC]
+call _TextOutA@20
+
+
+;EndPaint(hWnd, &ps);
+ lea   EAX, [PaintSt]                                ; [EBP - 80]
+ push  EAX 
+ push  dword [hWnd]                             ; [EBP + 8]
+ call  _EndPaint@8
+
+
+jmp DefaultMessage
+
 
 WMDESTROY:
  push  NULL
