@@ -1,0 +1,92 @@
+
+
+
+; ----------------------------------------------------------------------------
+; helloworld.asm
+;
+; This is a Win32 console program that writes "Hello, World" on one line and
+; then exits.  It needs to be linked with a C library.
+; ----------------------------------------------------------------------------
+
+    global  _main
+    extern  _printf
+
+    section .text
+_main:
+    push    message
+    call    _printf
+    add     esp, 4
+    ret
+message:
+    db  'Hello, World', 10, 0
+
+
+
+
+Then run
+
+nasm -fwin32 helloworld.asm
+gcc helloworld.obj
+a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+path_to_link\link.exe test64.obj /subsystem:windows /entry:WinMain  /libpath:path_to_libs /nodefaultlib kernel32.lib user32.lib /largeaddressaware:no
+
+where path_to_link could be C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin or wherever is your link.exe program in your machine, path_to_libs could be C:\Program Files (x86)\Windows Kits\8.1\Lib\winv6.3\um\x64 or wherever are your libraries (in this case both kernel32.lib and user32.lib are on the same place, otherwise use one option for each path you need) and the /largeaddressaware:no option is necessary to avoid linker's complain about addresses to long (for user32.lib in this case). Also, as it is done here, if Visual's linker is invoked from command prompt, it is necessary to setup the environment previously (run once vcvarsall.bat and/or see MS C++ 2010 and mspdb100.dll).
+
+
+
+
+
+
+
+global WinMain
+extern ExitProcess  ; external functions in system libraries 
+extern MessageBoxA
+
+section .data 
+title:  db 'Win64', 0
+msg:    db 'Hello world!', 0
+
+section .text
+WinMain:
+    sub rsp, 28h  
+    mov rcx, 0       ; hWnd = HWND_DESKTOP
+    lea rdx,[msg]    ; LPCSTR lpText
+    lea r8,[title]   ; LPCSTR lpCaption
+    mov r9d, 0       ; uType = MB_OK
+    call MessageBoxA
+    add rsp, 28h  
+
+    mov  ecx,eax
+    call ExitProcess
+
+    hlt     ; never here
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
