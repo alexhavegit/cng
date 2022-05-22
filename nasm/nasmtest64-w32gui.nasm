@@ -4,7 +4,11 @@ CS_BYTEALIGNWINDOW  EQU 2000h
 CS_HREDRAW          EQU 2
 CS_VREDRAW          EQU 1
 CW_USEDEFAULT       EQU 80000000h
+
+; Cursors
 IDC_ARROW           EQU 7F00h
+IDC_HAND            EQU 7f89h
+
 IDI_APPLICATION     EQU 7F00h
 IMAGE_CURSOR        EQU 2
 IMAGE_ICON          EQU 1
@@ -46,10 +50,11 @@ global WinMain
 section .data                                   ; Initialized data segment
 WindowName  db "Basic Window 64", 0
 ClassName   db "Window", 0
-msg         db 64 dup (0)  ;times 64 db 0 ;
-hWnd        db 8 dup (0)
-ps          db 64 dup (0)
-hDC         db 8 dup (0)
+msg         db 164 dup ('m')  ;times 64 db 0 ;
+wc          db 164 dup ('c')
+hWnd        db 8 dup ('w')
+ps          db 72 dup ('x')
+hDC         db 8 dup ('h')
 
 
 
@@ -81,37 +86,56 @@ sub   RSP, 136 + 8                             ; 136 bytes for local variables. 
                                             ; a multiple of 16 (for Windows API functions),
                                             ; the + 8 takes care of this.
 ;%if 0
-%define wc                 RBP - 136            ; WNDCLASSEX structure, 80 bytes
-%define wc.cbSize          RBP - 136            ; 4 bytes. Start on an 8 byte boundary
-%define wc.style           RBP - 132            ; 4 bytes
-%define wc.lpfnWndProc     RBP - 128            ; 8 bytes
-%define wc.cbClsExtra      RBP - 120            ; 4 bytes
-%define wc.cbWndExtra      RBP - 116            ; 4 bytes
-%define wc.hInstance       RBP - 112            ; 8 bytes
-%define wc.hIcon           RBP - 104            ; 8 bytes
-%define wc.hCursor         RBP - 96             ; 8 bytes
-%define wc.hbrBackground   RBP - 88             ; 8 bytes
-%define wc.lpszMenuName    RBP - 80             ; 8 bytes
-%define wc.lpszClassName   RBP - 72             ; 8 bytes
-%define wc.hIconSm         RBP - 64             ; 8 bytes. End on an 8 byte boundary
+;%define wc                 RBP - 136            ; WNDCLASSEX structure, 80 bytes
+;%define wc.cbSize          RBP - 136            ; 4 bytes. Start on an 8 byte boundary
+;%define wc.style           RBP - 132            ; 4 bytes
+;%define wc.lpfnWndProc     RBP - 128            ; 8 bytes
+;%define wc.cbClsExtra      RBP - 120            ; 4 bytes
+;%define wc.cbWndExtra      RBP - 116            ; 4 bytes
+;%define wc.hInstance       RBP - 112            ; 8 bytes
+;%define wc.hIcon           RBP - 104            ; 8 bytes
+;%define wc.hCursor         RBP - 96             ; 8 bytes
+;%define wc.hbrBackground   RBP - 88             ; 8 bytes
+;%define wc.lpszMenuName    RBP - 80             ; 8 bytes
+;%define wc.lpszClassName   RBP - 72             ; 8 bytes
+;%define wc.hIconSm         RBP - 64             ; 8 bytes. End on an 8 byte boundary
 ;%endif
 
 
 
+;%define wc                                   ; WNDCLASSEX structure, 80 bytes
+%define wc.cbSize          wc                 ;v 4 bytes. Start on an 8 byte boundary
+%define wc.style           wc + 4             ;v 4 bytes
+%define wc.lpfnWndProc     wc + 8             ;v 8 bytes
+%define wc.cbClsExtra      wc + 16            ;v 4 bytes
+%define wc.cbWndExtra      wc + 20            ;v 4 bytes
+%define wc.hInstance       wc + 24            ;v 8 bytes
+%define wc.hIcon           wc + 32            ;v 8 bytes
+%define wc.hCursor         wc + 40             ;v 8 bytes
+%define wc.hbrBackground   wc + 48             ;v 8 bytes
+%define wc.lpszMenuName    wc + 56             ;v 8 bytes
+%define wc.lpszClassName   wc + 64             ;v 8 bytes
+%define wc.hIconSm         wc + 72             ; 8 bytes. End on an 8 byte boundary
 
 
-%if 0
-%define msg                RBP - 56             ; MSG structure, 48 bytes
-%define msg.hwnd           RBP - 56             ; 8 bytes. Start on an 8 byte boundary
-%define msg.message        RBP - 48             ; 4 bytes
-%define msg.Padding1       RBP - 44             ; 4 bytes. Natural alignment padding
-%define msg.wParam         RBP - 40             ; 8 bytes
-%define msg.lParam         RBP - 32             ; 8 bytes
-%define msg.time           RBP - 24             ; 4 bytes
-%define msg.py.x           RBP - 20             ; 4 bytes
-%define msg.pt.y           RBP - 16             ; 4 bytes
-%define msg.Padding2       RBP - 12             ; 4 bytes. Structure length padding
-%endif
+
+
+
+
+
+
+;%if 0
+;%define msg                RBP - 56             ; MSG structure, 48 bytes
+;%define msg.hwnd           RBP - 56             ; 8 bytes. Start on an 8 byte boundary
+;%define msg.message        RBP - 48             ; 4 bytes
+;%define msg.Padding1       RBP - 44             ; 4 bytes. Natural alignment padding
+;%define msg.wParam         RBP - 40             ; 8 bytes
+;%define msg.lParam         RBP - 32             ; 8 bytes
+;%define msg.time           RBP - 24             ; 4 bytes
+;%define msg.py.x           RBP - 20             ; 4 bytes
+;%define msg.pt.y           RBP - 16             ; 4 bytes
+;%define msg.Padding2       RBP - 12             ; 4 bytes. Structure length padding
+;%endif
 
 
 
@@ -153,7 +177,7 @@ add   RSP, 48                                  ; Remove the 48 bytes
 
 sub   RSP, 32 + 16                             ; Shadow space + 2 parameters
 xor   ECX, ECX
-mov   EDX, IDC_ARROW
+mov   EDX, IDC_HAND   ;IDC_ARROW
 mov   R8D, IMAGE_CURSOR
 xor   R9D, R9D
 mov   qword [RSP + 4 * 8], NULL
@@ -271,7 +295,7 @@ WndProc:
     cmp   qword [uMsg], WM_DESTROY                 ; [RBP + 24]
     je    case_WM_DESTROY
 
-
+    jmp DefaultMessage
 
 
 case_WM_PAINT:
@@ -281,7 +305,7 @@ case_WM_PAINT:
 ;BeginPaint(hWnd, &ps);
 sub   RSP, 32
 mov   rcx, qword [hWnd]
-lea   rdx, ps
+mov   rdx, ps  ;lea
 mov   r8, 0
 mov   r9, 0
 call  BeginPaint
@@ -303,7 +327,7 @@ add   RSP, 32 + 8
 ;EndPaint(hWnd, &ps);
 sub   RSP, 32
 mov   rcx, qword [hWnd]
-lea   rdx, ps
+mov   rdx, ps   ;lea
 mov   r8, 0
 mov   r9, 0
 call  EndPaint
