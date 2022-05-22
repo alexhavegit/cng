@@ -34,6 +34,10 @@ extern RegisterClassExA
 extern ShowWindow
 extern TranslateMessage
 extern UpdateWindow
+extern BeginPaint
+extern EndPaint
+extern TextOutA
+
 
 global Start                                    ; Export symbols. The entry point
 global WinMain
@@ -42,7 +46,12 @@ global WinMain
 section .data                                   ; Initialized data segment
 WindowName  db "Basic Window 64", 0
 ClassName   db "Window", 0
-msg1        db 64 dup (0)  ;times 64 db 0 ;
+msg         db 64 dup (0)  ;times 64 db 0 ;
+hWnd        db 8 dup (0)
+ps          db 64 dup (0)
+hDC         db 8 dup (0)
+
+
 
 
 section .bss                                    ; Uninitialized data segment
@@ -71,7 +80,7 @@ mov   RBP, RSP
 sub   RSP, 136 + 8                             ; 136 bytes for local variables. 136 is not
                                             ; a multiple of 16 (for Windows API functions),
                                             ; the + 8 takes care of this.
-
+;%if 0
 %define wc                 RBP - 136            ; WNDCLASSEX structure, 80 bytes
 %define wc.cbSize          RBP - 136            ; 4 bytes. Start on an 8 byte boundary
 %define wc.style           RBP - 132            ; 4 bytes
@@ -85,7 +94,13 @@ sub   RSP, 136 + 8                             ; 136 bytes for local variables. 
 %define wc.lpszMenuName    RBP - 80             ; 8 bytes
 %define wc.lpszClassName   RBP - 72             ; 8 bytes
 %define wc.hIconSm         RBP - 64             ; 8 bytes. End on an 8 byte boundary
+;%endif
 
+
+
+
+
+%if 0
 %define msg                RBP - 56             ; MSG structure, 48 bytes
 %define msg.hwnd           RBP - 56             ; 8 bytes. Start on an 8 byte boundary
 %define msg.message        RBP - 48             ; 4 bytes
@@ -96,8 +111,25 @@ sub   RSP, 136 + 8                             ; 136 bytes for local variables. 
 %define msg.py.x           RBP - 20             ; 4 bytes
 %define msg.pt.y           RBP - 16             ; 4 bytes
 %define msg.Padding2       RBP - 12             ; 4 bytes. Structure length padding
+%endif
 
-%define hWnd               RBP - 8              ; 8 bytes
+
+
+;%define msg                msg
+%define msg.hwnd           msg                  ;v 8 bytes. Start on an 8 byte boundary
+%define msg.message        msg + 8              ;v 4 bytes
+%define msg.Padding1       msg + 12             ;v 4 bytes. Natural alignment padding
+%define msg.wParam         msg + 16             ;v 8 bytes
+%define msg.lParam         msg + 24             ;v 8 bytes
+%define msg.time           msg + 32             ;v 4 bytes
+%define msg.py.x           msg + 36             ;v 4 bytes
+%define msg.pt.y           msg + 40             ;v 4 bytes
+%define msg.Padding2       msg + 44             ; 4 bytes. Structure length padding
+
+
+
+
+;%define hWnd               RBP - 8              ; 8 bytes
 
 mov   dword [wc.cbSize], 80                    ; [RBP - 136]
 mov   dword [wc.style], CS_HREDRAW | CS_VREDRAW | CS_BYTEALIGNWINDOW  ; [RBP - 132]
@@ -243,6 +275,43 @@ WndProc:
 
 
 case_WM_PAINT:
+
+
+
+;BeginPaint(hWnd, &ps);
+sub   RSP, 32
+mov   rcx, qword [hWnd]
+lea   rdx, ps
+mov   r8, 0
+mov   r9, 0
+call  BeginPaint
+mov   qword [hDC], rax
+add   RSP, 32
+
+
+;TextOut(hDC, x, y, wcSym, 1);
+sub   RSP, 32 + 8
+mov   rcx, qword [hDC]
+mov   rdx, 100
+mov   r8, 100
+mov   r9, WindowName
+mov   dword [RSP + 4 * 8], 10
+call TextOutA
+add   RSP, 32 + 8
+
+
+;EndPaint(hWnd, &ps);
+sub   RSP, 32
+mov   rcx, qword [hWnd]
+lea   rdx, ps
+mov   r8, 0
+mov   r9, 0
+call  EndPaint
+add   RSP, 32
+
+
+
+
 jmp DefaultMessage
 
 
